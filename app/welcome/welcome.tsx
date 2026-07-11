@@ -1,5 +1,5 @@
-import logoDark from "./logo-dark.svg";
-import logoLight from "./logo-light.svg";
+import logoDark from "./logo.svg";
+import logoLight from "./logo.svg";
 
 export function Welcome({ message }: { message: string }) {
 	return (
