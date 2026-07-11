@@ -4,7 +4,7 @@ export function Welcome() {
   const handleAgree = () => {
     // Mock login: simpan token palsu, langsung redirect ke resendlist
     localStorage.setItem("readtalk_token", "mock-token-12345");
-    window.location.href = "./authentication";
+    window.location.href = "../authentication";
   };
 
   return (
