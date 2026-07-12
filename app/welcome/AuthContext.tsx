@@ -1,3 +1,4 @@
+// app/welcome/AuthContext.tsx
 import {
   useRef,
   useState,
@@ -48,12 +49,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     auth();
   }, []);
 
+  // ============================================================
+  // 🔥 PERBAIKAN: Error Handling di auth()
+  // ============================================================
   async function auth() {
-    const token = await refreshTokens();
-    if (token) {
-      await user();
+    try {
+      const token = await refreshTokens();
+      if (token) {
+        await user();
+      }
+    } catch (error) {
+      console.error("Auth error:", error);
+    } finally {
+      setLoaded(true); // ← PASTIKAN SELALU DIPANGGIL
     }
-    setLoaded(true);
   }
 
   async function refreshTokens() {
@@ -109,16 +118,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function user() {
-    // Panggil API untuk mendapatkan user info
-    const res = await fetch("https://service.readtalk.workers.dev/api/user", {
-      headers: {
-        Authorization: `Bearer ${token.current}`,
-      },
-    });
+    // 🔥 SEMENTARA: Komentar dulu karena endpoint /api/user belum ada
+    // const res = await fetch("https://service.readtalk.workers.dev/api/user", {
+    //   headers: {
+    //     Authorization: `Bearer ${token.current}`,
+    //   },
+    // });
 
-    if (res.ok) {
-      const data = await res.json();
-      setUserId(data.id);
+    // if (res.ok) {
+    //   const data = await res.json();
+    //   setUserId(data.id);
+    //   setLoggedIn(true);
+    // }
+
+    // 🔥 SEMENTARA: Set loggedIn true jika ada token (untuk testing)
+    if (token.current) {
+      setUserId("test-user-id");
       setLoggedIn(true);
     }
   }
