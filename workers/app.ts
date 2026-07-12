@@ -13,13 +13,17 @@ const subjects = createSubjects({
 
 const app = new Hono();
 
-// 🔥 1. OPENAUTH ROUTES (dengan prefix /auth)
-app.get("/auth/*", async (c) => {
+// 🔥 Root → redirect ke OpenAuth
+app.get("/", (c) => {
+  return c.redirect("/authorize");
+});
+
+// 🔥 OpenAuth issuer (menangani /password/*)
+app.get("/*", async (c) => {
   const request = c.req.raw;
   const env = c.env;
   const ctx = c.executionCtx;
 
-  // OpenAuth issuer akan menangani /auth/authorize, /auth/callback, dll.
   return issuer({
     storage: CloudflareStorage({ namespace: env.AUTH_STORAGE }),
     subjects,
@@ -46,7 +50,7 @@ app.get("/auth/*", async (c) => {
   }).fetch(request, env, ctx);
 });
 
-// 🔥 2. REACT ROUTER (semua request lain)
+// 🔥 React Router (semua request lain)
 app.get("*", (c) => {
   const requestHandler = createRequestHandler(
     () => import("virtual:react-router/server-build"),
@@ -59,7 +63,6 @@ app.get("*", (c) => {
 
 export default app;
 
-// Helper function
 async function getOrCreateUser(env: Env, email: string): Promise<string> {
   const result = await env.AUTH_DB.prepare(
     `INSERT INTO user (email) VALUES (?) ON CONFLICT (email) DO UPDATE SET email = email RETURNING id;`
