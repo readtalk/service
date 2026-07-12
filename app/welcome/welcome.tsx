@@ -1,31 +1,11 @@
-// new welcome.tsx //
-import { useState } from "react";
 import { useAuth } from "./AuthContext";
 import logo from "./logo.svg";
 
 export function Welcome({ message }: { message: string }) {
   const auth = useAuth();
-  const [status, setStatus] = useState("");
-
-  async function callApi() {
-    const token = await auth.getToken();
-    if (!token) return;
-
-    const res = await fetch("https://service.readtalk.workers.dev/api/protected", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    setStatus(res.ok ? "API call: success" : "API call: error");
-  }
 
   if (!auth.loaded) {
-    return (
-      <main className="flex items-center justify-center pt-16 pb-4">
-        <div className="text-center">Loading...</div>
-      </main>
-    );
+    return <div className="text-center p-8">Loading...</div>;
   }
 
   return (
@@ -41,23 +21,14 @@ export function Welcome({ message }: { message: string }) {
           {auth.loggedIn ? (
             <div className="space-y-4 text-center">
               <p className="text-lg">
-                Logged in as <code className="bg-gray-100 px-2 py-1 rounded">{auth.userId}</code>
+                Logged in as <code className="bg-gray-100 px-2 py-1 rounded">{auth.userId || "User"}</code>
               </p>
-              {status !== "" && <p className="text-sm text-gray-600">{status}</p>}
-              <div className="flex gap-4 justify-center">
-                <button
-                  onClick={callApi}
-                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                >
-                  Call API
-                </button>
-                <button
-                  onClick={auth.logout}
-                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-                >
-                  Logout
-                </button>
-              </div>
+              <button
+                onClick={auth.logout}
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+              >
+                Logout
+              </button>
             </div>
           ) : (
             <div className="space-y-4 text-center">
