@@ -7,25 +7,13 @@ import { PasswordUI } from "@openauthjs/openauth/ui/password";
 import { createSubjects } from "@openauthjs/openauth/subject";
 import { object, string } from "valibot";
 
-// ============================================================
-// 🔥 SUBJECTS (shared antara server dan client)
-// ============================================================
 const subjects = createSubjects({
-  user: object({
-    id: string(),
-  }),
+  user: object({ id: string() }),
 });
 
-// ============================================================
-// 🔥 HONO APP
-// ============================================================
 const app = new Hono();
 
-// ============================================================
-// 🔥 OPENAUTH ROUTES (minimalis — seperti contoh original)
-// ============================================================
-
-// Root → redirect ke /authorize
+// 🔥 Root → redirect ke OpenAuth
 app.get("/", (c) => {
   const url = new URL(c.req.url);
   url.searchParams.set("redirect_uri", url.origin + "/callback");
@@ -35,7 +23,7 @@ app.get("/", (c) => {
   return c.redirect(url.toString());
 });
 
-// Callback → return JSON (seperti contoh original)
+// 🔥 Callback
 app.get("/callback", (c) => {
   return c.json({
     message: "OAuth flow complete!",
@@ -43,18 +31,14 @@ app.get("/callback", (c) => {
   });
 });
 
-// ============================================================
-// 🔥 OPENAUTH ISSUER (menangani /authorize, dll.)
-// ============================================================
+// 🔥 OpenAuth issuer (menangani /authorize)
 app.get("/authorize", async (c) => {
   const request = c.req.raw;
   const env = c.env;
   const ctx = c.executionCtx;
 
   return issuer({
-    storage: CloudflareStorage({
-      namespace: env.AUTH_STORAGE,
-    }),
+    storage: CloudflareStorage({ namespace: env.AUTH_STORAGE }),
     subjects,
     providers: {
       password: PasswordProvider(
@@ -62,9 +46,7 @@ app.get("/authorize", async (c) => {
           sendCode: async (email, code) => {
             console.log(`Sending code ${code} to ${email}`);
           },
-          copy: {
-            input_code: "Code (check Worker logs)",
-          },
+          copy: { input_code: "Code (check Worker logs)" },
         }),
       ),
     },
@@ -72,29 +54,21 @@ app.get("/authorize", async (c) => {
       title: "Authentication",
       primary: "#FF0000",
       favicon: "#",
-      logo: {
-        dark: "#",
-        light: "#",
-      },
+      logo: { dark: "#", light: "#" },
     },
     success: async (ctx, value) => {
       const userId = await getOrCreateUser(env, value.email);
-      return ctx.subject("user", {
-        id: userId,
-      });
+      return ctx.subject("user", { id: userId });
     },
   }).fetch(request, env, ctx);
 });
 
-// ============================================================
-// 🔥 REACT ROUTER (menangani semua request lainnya)
-// ============================================================
+// 🔥 React Router (semua request lain)
 app.get("*", (c) => {
   const requestHandler = createRequestHandler(
     () => import("virtual:react-router/server-build"),
     import.meta.env.MODE,
   );
-
   return requestHandler(c.req.raw, {
     cloudflare: { env: c.env, ctx: c.executionCtx },
   });
@@ -102,26 +76,12 @@ app.get("*", (c) => {
 
 export default app;
 
-// ============================================================
-// 🔥 HELPER FUNCTIONS
-// ============================================================
-
 async function getOrCreateUser(env: Env, email: string): Promise<string> {
   const result = await env.AUTH_DB.prepare(
-    `
-    INSERT INTO user (email)
-    VALUES (?)
-    ON CONFLICT (email) DO UPDATE SET email = email
-    RETURNING id;
-    `
+    `INSERT INTO user (email) VALUES (?) ON CONFLICT (email) DO UPDATE SET email = email RETURNING id;`
   )
     .bind(email)
     .first<{ id: string }>();
-
-  if (!result) {
-    throw new Error(`Unable to process user: ${email}`);
-  }
-
-  console.log(`Found or created user ${result.id} with email ${email}`);
+  if (!result) throw new Error(`Unable to process user: ${email}`);
   return result.id;
 }
