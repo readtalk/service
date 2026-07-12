@@ -1,13 +1,5 @@
-// app/welcome/AuthContext.tsx
-import {
-  useRef,
-  useState,
-  ReactNode,
-  useEffect,
-  useContext,
-  createContext,
-} from "react";
 import { createClient } from "@openauthjs/openauth/client";
+import { createContext, useContext, useState, useEffect, useRef } from "react";
 
 const client = createClient({
   clientID: "service",
@@ -25,7 +17,7 @@ interface AuthContextType {
 
 const AuthContext = createContext({} as AuthContextType);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const initializing = useRef(true);
   const [loaded, setLoaded] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
@@ -49,44 +41,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     auth();
   }, []);
 
-  // ============================================================
-  // 🔥 PERBAIKAN: Error Handling di auth()
-  // ============================================================
   async function auth() {
     try {
-      const token = await refreshTokens();
-      if (token) {
-        await user();
+      const refresh = localStorage.getItem("refresh");
+      if (refresh) {
+        const next = await client.refresh(refresh, { access: token.current });
+        if (!next.err && next.tokens) {
+          token.current = next.tokens.access;
+          localStorage.setItem("refresh", next.tokens.refresh);
+          setLoggedIn(true);
+          // Ambil user info
+          const res = await fetch("https://service.readtalk.workers.dev/api/user", {
+            headers: { Authorization: `Bearer ${token.current}` },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setUserId(data.id);
+          }
+        }
       }
     } catch (error) {
       console.error("Auth error:", error);
     } finally {
-      setLoaded(true); // ← PASTIKAN SELALU DIPANGGIL
+      setLoaded(true);
     }
-  }
-
-  async function refreshTokens() {
-    const refresh = localStorage.getItem("refresh");
-    if (!refresh) return;
-    const next = await client.refresh(refresh, {
-      access: token.current,
-    });
-    if (next.err) return;
-    if (!next.tokens) return token.current;
-
-    localStorage.setItem("refresh", next.tokens.refresh);
-    token.current = next.tokens.access;
-
-    return next.tokens.access;
   }
 
   async function getToken() {
-    const token = await refreshTokens();
-    if (!token) {
+    if (!token.current) {
       await login();
       return;
     }
-    return token;
+    return token.current;
   }
 
   async function login() {
@@ -101,40 +87,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function callback(code: string, state: string) {
     const challenge = JSON.parse(sessionStorage.getItem("challenge")!);
-    if (code) {
-      if (state === challenge.state && challenge.verifier) {
-        const exchanged = await client.exchange(
-          code!,
-          "https://service.readtalk.workers.dev/callback",
-          challenge.verifier
-        );
-        if (!exchanged.err) {
-          token.current = exchanged.tokens?.access;
-          localStorage.setItem("refresh", exchanged.tokens.refresh);
-        }
+    if (code && state === challenge.state && challenge.verifier) {
+      const exchanged = await client.exchange(
+        code,
+        "https://service.readtalk.workers.dev/callback",
+        challenge.verifier
+      );
+      if (!exchanged.err) {
+        token.current = exchanged.tokens?.access;
+        localStorage.setItem("refresh", exchanged.tokens?.refresh || "");
+        window.location.replace("/");
       }
-      window.location.replace("/");
-    }
-  }
-
-  async function user() {
-    // 🔥 SEMENTARA: Komentar dulu karena endpoint /api/user belum ada
-    // const res = await fetch("https://service.readtalk.workers.dev/api/user", {
-    //   headers: {
-    //     Authorization: `Bearer ${token.current}`,
-    //   },
-    // });
-
-    // if (res.ok) {
-    //   const data = await res.json();
-    //   setUserId(data.id);
-    //   setLoggedIn(true);
-    // }
-
-    // 🔥 SEMENTARA: Set loggedIn true jika ada token (untuk testing)
-    if (token.current) {
-      setUserId("test-user-id");
-      setLoggedIn(true);
     }
   }
 
@@ -145,16 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider
-      value={{
-        login,
-        logout,
-        userId,
-        loaded,
-        loggedIn,
-        getToken,
-      }}
-    >
+    <AuthContext.Provider value={{ userId, loaded, loggedIn, logout, login, getToken }}>
       {children}
     </AuthContext.Provider>
   );
