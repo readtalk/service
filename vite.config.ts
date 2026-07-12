@@ -13,7 +13,13 @@ export default defineConfig({
   ],
   build: {
     rollupOptions: {
-      external: ["@openauthjs/openauth"],
+      external: [
+        "@openauthjs/openauth",
+        "@openauthjs/openauth/storage/cloudflare",
+        "@openauthjs/openauth/provider/password",
+        "@openauthjs/openauth/ui/password",
+        "@openauthjs/openauth/subject",
+      ],
     },
   },
 });
