@@ -15,11 +15,11 @@ const app = new Hono();
 
 // 🔥 Root → redirect ke OpenAuth
 app.get("/", (c) => {
-  return c.redirect("/authorize");
+  return c.redirect("/password/authorize");
 });
 
 // 🔥 OpenAuth issuer (menangani /password/*)
-app.get("/*", async (c) => {
+app.get("/password*", async (c) => {
   const request = c.req.raw;
   const env = c.env;
   const ctx = c.executionCtx;
