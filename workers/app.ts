@@ -49,7 +49,7 @@ app.get("/password/*", async (c) => {
       return new Response(null, {
         status: 302,
         headers: {
-          "Location": "/welcome",
+          "Location": "home",
           "Set-Cookie": `userId=${userId}; HttpOnly; Max-Age=${60 * 60 * 24 * 7}; Path=/`,
         },
       });
