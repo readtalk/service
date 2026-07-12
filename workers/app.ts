@@ -13,30 +13,13 @@ const subjects = createSubjects({
 
 const app = new Hono();
 
-// 🔥 Root → redirect ke OpenAuth
-app.get("/", (c) => {
-  const url = new URL(c.req.url);
-  url.searchParams.set("redirect_uri", url.origin + "/callback");
-  url.searchParams.set("client_id", "your-client-id");
-  url.searchParams.set("response_type", "code");
-  url.pathname = "/authorize";
-  return c.redirect(url.toString());
-});
-
-// 🔥 Callback
-app.get("/callback", (c) => {
-  return c.json({
-    message: "OAuth flow complete!",
-    params: Object.fromEntries(new URL(c.req.url).searchParams.entries()),
-  });
-});
-
-// 🔥 OpenAuth issuer (menangani /authorize)
-app.get("/authorize", async (c) => {
+// 🔥 1. OPENAUTH ROUTES (dengan prefix /auth)
+app.get("/auth/*", async (c) => {
   const request = c.req.raw;
   const env = c.env;
   const ctx = c.executionCtx;
 
+  // OpenAuth issuer akan menangani /auth/authorize, /auth/callback, dll.
   return issuer({
     storage: CloudflareStorage({ namespace: env.AUTH_STORAGE }),
     subjects,
@@ -51,7 +34,7 @@ app.get("/authorize", async (c) => {
       ),
     },
     theme: {
-      title: "Authentication",
+      title: "Service",
       primary: "#FF0000",
       favicon: "#",
       logo: { dark: "#", light: "#" },
@@ -63,7 +46,7 @@ app.get("/authorize", async (c) => {
   }).fetch(request, env, ctx);
 });
 
-// 🔥 React Router (semua request lain)
+// 🔥 2. REACT ROUTER (semua request lain)
 app.get("*", (c) => {
   const requestHandler = createRequestHandler(
     () => import("virtual:react-router/server-build"),
@@ -76,6 +59,7 @@ app.get("*", (c) => {
 
 export default app;
 
+// Helper function
 async function getOrCreateUser(env: Env, email: string): Promise<string> {
   const result = await env.AUTH_DB.prepare(
     `INSERT INTO user (email) VALUES (?) ON CONFLICT (email) DO UPDATE SET email = email RETURNING id;`
