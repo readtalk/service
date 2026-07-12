@@ -13,12 +13,12 @@ const subjects = createSubjects({
 
 const app = new Hono();
 
-// 🔥 Root → redirect ke /password/authorize
+// Root → redirect ke /password/authorize
 app.get("/", (c) => {
   return c.redirect("/password/authorize");
 });
 
-// 🔥 OpenAuth issuer (menangani /password/*)
+// OpenAuth issuer (menangani /password/*)
 app.get("/password/*", async (c) => {
   const request = c.req.raw;
   const env = c.env;
@@ -45,11 +45,11 @@ app.get("/password/*", async (c) => {
     },
     success: async (ctx, value) => {
       const userId = await getOrCreateUser(env, value.email);
-      // 🔥 Redirect ke / (halaman utama) setelah login
+      // 🔥 Redirect ke / (halaman utama)
       return new Response(null, {
         status: 302,
         headers: {
-          "Location": "home",
+          "Location": "/",
           "Set-Cookie": `userId=${userId}; HttpOnly; Max-Age=${60 * 60 * 24 * 7}; Path=/`,
         },
       });
@@ -57,7 +57,7 @@ app.get("/password/*", async (c) => {
   }).fetch(request, env, ctx);
 });
 
-// 🔥 React Router (semua request lain)
+// React Router (semua request lain)
 app.get("*", (c) => {
   const requestHandler = createRequestHandler(
     () => import("virtual:react-router/server-build"),
