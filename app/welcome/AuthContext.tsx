@@ -96,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!exchanged.err) {
         token.current = exchanged.tokens?.access;
         localStorage.setItem("refresh", exchanged.tokens?.refresh || "");
-        window.location.replace("/welcome");
+        window.location.replace("/");
       }
     }
   }
