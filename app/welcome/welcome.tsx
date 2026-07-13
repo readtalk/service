@@ -1,4 +1,4 @@
-import { useAuth } from "./AuthContext";
+import { useContext } from "./AuthContext";
 import logo from "./logo.svg";
 
 export function Welcome({ message }: { message: string }) {
