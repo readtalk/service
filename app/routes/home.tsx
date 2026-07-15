@@ -1,4 +1,3 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import type { Route } from "./+types/home";
 import { Welcome } from "../welcome/welcome";
 
