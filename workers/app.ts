@@ -1,4 +1,3 @@
-// app.ts //
 import { issuer } from "@openauthjs/openauth";
 import { CloudflareStorage } from "@openauthjs/openauth/storage/cloudflare";
 import { PasswordProvider } from "@openauthjs/openauth/provider/password";
@@ -48,8 +47,8 @@ export default {
       theme: {
         title: "Authentication",
         primary: "#FF0000",
-        favicon: "#",
-        logo: { dark: "#", light: "#" },
+        favicon: "https://service.readtalk.workers.dev/logo.png",
+        logo: { dark: "https://service.readtalk.workers.dev/logo.png", light: "https://service.readtalk.workers.dev/logo.png" },
       },
       success: async (ctx, value) => {
         const userId = await getOrCreateUser(env, value.email);
