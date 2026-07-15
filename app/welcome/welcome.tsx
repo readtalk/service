@@ -23,6 +23,12 @@ export function Welcome({ message }: { message: string }) {
               <p className="text-lg">
                 Logged in as <code className="bg-gray-100 px-2 py-1 rounded">{auth.userId || "User"}</code>
               </p>
+              {/* 🔥 TAMPILKAN EMAIL */}
+              {auth.userEmail && (
+                <p className="text-sm text-gray-600">
+                  Email: <span className="font-mono">{auth.userEmail}</span>
+                </p>
+              )}
               <button
                 onClick={auth.logout}
                 className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
