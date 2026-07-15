@@ -27,7 +27,7 @@ export default {
 
     
     if (url.pathname === "/") {
-      url.searchParams.set("redirect_uri", "https://readtalk.com/");
+      url.searchParams.set("redirect_uri", "https://service.readtalk.workers.dev/");
       url.searchParams.set("client_id", "your-client-id");
       url.searchParams.set("response_type", "code");
       url.pathname = "/authorize";
@@ -36,7 +36,7 @@ export default {
 
     
     if (url.pathname === "/callback") {
-      return Response.redirect("https://readtalk.com/");
+      return Response.redirect("https://service.readtalk.workers.dev/");
     }
 
     
