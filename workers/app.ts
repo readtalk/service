@@ -6,40 +6,31 @@ import { createSubjects } from "@openauthjs/openauth/subject";
 import { object, string } from "valibot";
 
 const subjects = createSubjects({
-  user: object({ id: string(), email: string() }), 
+  user: object({ id: string() }),
 });
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
     const url = new URL(request.url);
 
-    
-    if (url.pathname === "/me") {
-      const authCheck = issuer({
-        storage: CloudflareStorage({ namespace: env.AUTH_STORAGE }),
-        subjects,
-        providers: { password: PasswordProvider(PasswordUI({ sendCode: async () => {} })) },
-      });
-      const session = await authCheck.getSession(request, env);
-      if (!session) return new Response("Unauthorized", { status: 401 });
-      return Response.json(session.subject.user);
-    }
-
-    
+    // Redirect root ke /authorize
     if (url.pathname === "/") {
-      url.searchParams.set("redirect_uri", "https://service.readtalk.workers.dev/");
+      url.searchParams.set("redirect_uri", url.origin + "/callback");
       url.searchParams.set("client_id", "your-client-id");
       url.searchParams.set("response_type", "code");
       url.pathname = "/authorize";
       return Response.redirect(url.toString());
     }
 
-    
+    // Callback
     if (url.pathname === "/callback") {
-      return Response.redirect("https://service.readtalk.workers.dev/");
+      return Response.json({
+        message: "OAuth flow complete!",
+        params: Object.fromEntries(url.searchParams.entries()),
+      });
     }
 
-    
+    // OpenAuth issuer
     return issuer({
       storage: CloudflareStorage({ namespace: env.AUTH_STORAGE }),
       subjects,
@@ -57,24 +48,11 @@ export default {
         title: "Authentication",
         primary: "#FF0000",
         favicon: "https://service.readtalk.workers.dev/logo.png",
-        logo: {
-          dark: "https://service.readtalk.workers.dev/logo.png",
-          light: "https://service.readtalk.workers.dev/logo.png",
-        },
+        logo: { dark: "https://service.readtalk.workers.dev/logo.png", light: "https://service.readtalk.workers.dev/logo.png" },
       },
-      
       success: async (ctx, value) => {
         const userId = await getOrCreateUser(env, value.email);
-        const tokens = await ctx.issue(subjects.user, { id: userId, email: value.email });
-        
-        
-        return new Response(null, {
-          status: 302,
-          headers: {
-            "Location": "https://service.readtalk.workers.dev/",
-            "Set-Cookie": `token=${tokens.access}; HttpOnly; Path=/; SameSite=Lax; Secure; Max-Age=2592000`
-          }
-        });
+        return ctx.subject("user", { id: userId });
       },
     }).fetch(request, env, ctx);
   },
