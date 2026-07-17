@@ -1,4 +1,3 @@
-// app/routes/auth/authorize.tsx
 import type { Route } from "./+types/authorize";
 import { issuer } from "@openauthjs/openauth";
 import { CloudflareStorage } from "@openauthjs/openauth/storage/cloudflare";
