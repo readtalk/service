@@ -12,17 +12,16 @@ const subjects = createSubjects({
 });
 
 export async function loader({ request, context }: Route.LoaderArgs) {
-  const env = context.env as Env;
+  const env = context.cloudflare?.env as Env;
 
-  // OpenAuth issuer
-  const response = await issuer({
+  return issuer({
     storage: CloudflareStorage({ namespace: env.AUTH_STORAGE }),
     subjects,
     providers: {
       password: PasswordProvider(
         PasswordUI({
           sendCode: async (email, code) => {
-            console.log(`Sending code ${code} to ${email}`);
+            console.log(`[OpenAuth] Sending code ${code} to ${email}`);
           },
           copy: { input_code: "Code (check Worker logs)" },
         }),
@@ -39,8 +38,6 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       return ctx.subject("user", { id: userId });
     },
   }).fetch(request, env, context.ctx);
-
-  return response;
 }
 
 async function getOrCreateUser(env: Env, email: string): Promise<string> {
@@ -51,4 +48,9 @@ async function getOrCreateUser(env: Env, email: string): Promise<string> {
     .first<{ id: string }>();
   if (!result) throw new Error(`Unable to process user: ${email}`);
   return result.id;
+}
+
+interface Env {
+  AUTH_STORAGE: KVNamespace;
+  AUTH_DB: D1Database;
 }
