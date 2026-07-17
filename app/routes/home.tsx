@@ -1,49 +1,9 @@
+// app/routes/home.tsx
 import type { Route } from "./+types/home";
 import { Welcome } from "../welcome/welcome";
-import { redirect } from "react-router";
 
 // ============================================================
-// LOADER: Memeriksa session & mengambil data user
-// ============================================================
-
-export async function loader({ request, context }: Route.LoaderArgs) {
-  // 1. Ambil cookie dari request
-  const cookieHeader = request.headers.get("Cookie");
-  const sessionToken = cookieHeader?.match(/session=([^;]+)/)?.[1];
-
-  // 2. Jika tidak ada session, redirect ke OpenAuth
-  if (!sessionToken) {
-    throw redirect("/auth/authorize");
-  }
-
-  // 3. Verifikasi session di KV
-  const env = context.cloudflare?.env as Env;
-  const sessionData = await env.AUTH_STORAGE.get(`session:${sessionToken}`);
-
-  if (!sessionData) {
-    // Session tidak valid atau expired
-    throw redirect("/auth/authorize");
-  }
-
-  // 4. Parse data user dari session
-  const user = JSON.parse(sessionData) as { userId: string; email: string };
-
-  // 5. Ambil message dari environment (opsional)
-  const message = env.VALUE_FROM_CLOUDFLARE || "Welcome to ReadTalk!";
-
-  return { user, message };
-}
-
-// ============================================================
-// KOMPONEN HOME (tetap sama seperti sebelumnya)
-// ============================================================
-
-export default function Home({ loaderData }: Route.ComponentProps) {
-  return <Welcome message={loaderData.message} user={loaderData.user} />;
-}
-
-// ============================================================
-// META (tetap sama)
+// META: Judul & Deskripsi Halaman
 // ============================================================
 
 export function meta({}: Route.MetaArgs) {
@@ -51,6 +11,64 @@ export function meta({}: Route.MetaArgs) {
     { title: "ReadTalk - Home" },
     { name: "description", content: "Welcome to ReadTalk Messenger!" },
   ];
+}
+
+// ============================================================
+// LOADER: Ambil data user dari cookie/session
+// ============================================================
+
+export async function loader({ request, context }: Route.LoaderArgs) {
+  // 1. Ambil cookie dari request
+  const cookieHeader = request.headers.get("Cookie") || "";
+  const cookies = Object.fromEntries(
+    cookieHeader.split("; ").filter(Boolean).map((c) => {
+      const [key, ...val] = c.split("=");
+      return [key, val.join("=")];
+    })
+  );
+
+  // 2. Cek apakah ada session userId di cookie
+  const userId = cookies.userId;
+
+  // 3. Jika tidak ada session, redirect ke halaman login
+  if (!userId) {
+    // Redirect ke root (yang akan redirect ke /authorize)
+    return new Response(null, {
+      status: 302,
+      headers: { Location: "/" },
+    });
+  }
+
+  // 4. Ambil data user dari D1
+  const env = context.cloudflare?.env as Env;
+  const user = await env.AUTH_DB.prepare(
+    "SELECT id, email FROM user WHERE id = ?"
+  )
+    .bind(userId)
+    .first<{ id: string; email: string }>();
+
+  // 5. Jika user tidak ditemukan, redirect ke login
+  if (!user) {
+    return new Response(null, {
+      status: 302,
+      headers: { Location: "/" },
+    });
+  }
+
+  // 6. Kembalikan data user ke komponen
+  return { user };
+}
+
+// ============================================================
+// KOMPONEN HOME
+// ============================================================
+
+export default function Home({ loaderData }: Route.ComponentProps) {
+  // Data dari loader
+  const { user } = loaderData;
+
+  // Kirim ke komponen Welcome
+  return <Welcome message="Welcome to ReadTalk!" user={user} />;
 }
 
 // ============================================================
