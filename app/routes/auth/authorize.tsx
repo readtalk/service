@@ -1,16 +1,20 @@
+// app/routes/auth/authorize.tsx
 import type { Route } from "./+types/authorize";
-import { issuer } from "@openauthjs/openauth";
-import { CloudflareStorage } from "@openauthjs/openauth/storage/cloudflare";
-import { PasswordProvider } from "@openauthjs/openauth/provider/password";
-import { PasswordUI } from "@openauthjs/openauth/ui/password";
-import { createSubjects } from "@openauthjs/openauth/subject";
-import { object, string } from "valibot";
 
-const subjects = createSubjects({
-  user: object({ id: string() }),
-});
-
+// Import dinamis di dalam loader (server-only)
 export async function loader({ request, context }: Route.LoaderArgs) {
+  // Semua import OpenAuth di-dalam loader
+  const { issuer } = await import("@openauthjs/openauth");
+  const { CloudflareStorage } = await import("@openauthjs/openauth/storage/cloudflare");
+  const { PasswordProvider } = await import("@openauthjs/openauth/provider/password");
+  const { PasswordUI } = await import("@openauthjs/openauth/ui/password");
+  const { createSubjects } = await import("@openauthjs/openauth/subject");
+  const { object, string } = await import("valibot");
+
+  const subjects = createSubjects({
+    user: object({ id: string() }),
+  });
+
   const env = context.cloudflare?.env as Env;
 
   return issuer({
