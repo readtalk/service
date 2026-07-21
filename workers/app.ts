@@ -1,3 +1,4 @@
+// workers/app.ts //
 import { Hono } from "hono";
 import { createRequestHandler } from "react-router";
 import authHandler from "./auth-handler";
