@@ -11,6 +11,36 @@ Built with the [Cloudflare Vite plugin](https://developers.cloudflare.com/worker
 
 A perfect starting point for building interactive, styled, and edge-deployed SPAs with minimal configuration.
 
+```
+readtalk/service/
+├── .vscode/
+│   └── settings.json
+├── app/
+│   ├── app.css
+│   ├── entry.server.tsx
+│   ├── root.tsx
+│   ├── routes.ts
+│   ├── routes/
+│   │   └── home.tsx
+│   └── welcome/
+│         └── welcome.tsx
+├── public/
+│   ├── favicon.ico
+│   └── logo.png
+├── workers/
+│   └── app.ts
+├── .gitignore
+├── package.json
+├── README.md
+├── react-router.config.ts
+├── tsconfig.cloudflare.json
+├── tsconfig.json
+├── tsconfig.node.json
+├── vite.config.ts
+├── worker-configuration.d.ts
+└── wrangler.jsonc
+```
+
 ## Features
 
 - ⚡ Full-stack app on Cloudflare Workers
