@@ -1,14 +1,16 @@
 import { Hono } from "hono";
 import { createRequestHandler } from "react-router";
+
+// Import auth
 import authHandler from "./auth";
 
 const app = new Hono();
 
-// OpenAuth Routes
+// IMPORTANT
 app.route("/auth", authHandler);
 
 // React Router
-app.get("*", (c) => {
+app.all("*", (c) => {
   const requestHandler = createRequestHandler(
     () => import("virtual:react-router/server-build"),
     import.meta.env.MODE,
