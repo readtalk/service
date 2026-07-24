@@ -1,5 +1,3 @@
-// app/welcome/welcome.tsx
-import type { Route } from "./+types/welcome";
 import { issuer } from "@openauthjs/openauth";
 import { CloudflareStorage } from "@openauthjs/openauth/storage/cloudflare";
 import { PasswordProvider } from "@openauthjs/openauth/provider/password";
