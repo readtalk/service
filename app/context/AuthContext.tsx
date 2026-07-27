@@ -8,18 +8,17 @@ import {
   createContext,
 } from "react";
 import { createClient } from "@openauthjs/openauth/client";
-import { useNavigate } from "react-router";
 
 // ============================================================
-// KONFIGURASI CLIENT OPEN AUTH
+// CLIENT OPEN AUTH (mengarah ke server yang sama)
 // ============================================================
 const client = createClient({
   clientID: "react",
-  issuer: "http://service.readtalk.workers.dev",
+  issuer: window.location.origin, // Server OpenAuth di Worker yang sama
 });
 
 // ============================================================
-// TYPE DEFINITION
+// TYPE
 // ============================================================
 interface AuthContextType {
   userId?: string;
@@ -39,16 +38,12 @@ const AuthContext = createContext({} as AuthContextType);
 // PROVIDER
 // ============================================================
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const navigate = useNavigate();
   const initializing = useRef(true);
   const [loaded, setLoaded] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
   const token = useRef<string | undefined>(undefined);
   const [userId, setUserId] = useState<string | undefined>();
 
-  // ============================================================
-  // INISIALISASI: Cek callback atau refresh token
-  // ============================================================
   useEffect(() => {
     const hash = new URLSearchParams(location.search.slice(1));
     const code = hash.get("code");
@@ -68,16 +63,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     auth();
   }, []);
 
-  // ============================================================
-  // FUNGSI AUTH
-  // ============================================================
   async function auth() {
     const token = await refreshTokens();
-
     if (token) {
       await user();
     }
-
     setLoaded(true);
   }
 
@@ -92,18 +82,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     localStorage.setItem("refresh", next.tokens.refresh);
     token.current = next.tokens.access;
-
     return next.tokens.access;
   }
 
   async function getToken() {
     const token = await refreshTokens();
-
     if (!token) {
       await login();
       return;
     }
-
     return token;
   }
 
@@ -129,17 +116,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.setItem("refresh", exchanged.tokens.refresh);
         }
       }
-      navigate("/");
+      window.location.replace("/");
     }
   }
 
   async function user() {
-    const res = await fetch("http://service.readtalk.workers.dev", {
+    const res = await fetch("/", {
       headers: {
         Authorization: `Bearer ${token.current}`,
       },
     });
-
     if (res.ok) {
       setUserId(await res.text());
       setLoggedIn(true);
@@ -149,14 +135,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   function logout() {
     localStorage.removeItem("refresh");
     token.current = undefined;
-    setLoggedIn(false);
-    setUserId(undefined);
-    navigate("/");
+    window.location.replace("/");
   }
 
-  // ============================================================
-  // RENDER PROVIDER
-  // ============================================================
   return (
     <AuthContext.Provider
       value={{
@@ -173,9 +154,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// ============================================================
-// HOOK
-// ============================================================
 export function useAuth() {
   return useContext(AuthContext);
 }
