@@ -15,7 +15,7 @@ import { useNavigate } from "react-router";
 // ============================================================
 const client = createClient({
   clientID: "react",
-  issuer: "http://localhost:3000", // Ganti dengan URL OpenAuth server Anda
+  issuer: "http://service.readtalk.workers.dev/password/authorize",
 });
 
 // ============================================================
