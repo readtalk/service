@@ -15,7 +15,7 @@ import { useNavigate } from "react-router";
 // ============================================================
 const client = createClient({
   clientID: "react",
-  issuer: "http://service.readtalk.workers.dev/password/authorize",
+  issuer: "http://service.readtalk.workers.dev",
 });
 
 // ============================================================
@@ -134,7 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function user() {
-    const res = await fetch("http://localhost:3001/", {
+    const res = await fetch("http://service.readtalk.workers.dev", {
       headers: {
         Authorization: `Bearer ${token.current}`,
       },
