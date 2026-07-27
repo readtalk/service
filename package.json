@@ -1,8 +1,8 @@
 {
 	"name": "service",
-	"description": "A modern full-stack template powered by Cloudflare Workers, using Hono for backend APIs, React Router for frontend routing, and shadcn/ui for beautiful, accessible components styled with Tailwind CSS",
+	"description": "A modern full-stack powered by Cloudflare Workers, using Hono for backend APIs, React Router for frontend routing, and shadcn/ui for beautiful, accessible components styled with Tailwind CSS",
 	"cloudflare": {
-		"label": "React Router + Hono Fullstack App",
+		"label": "React Router + Hono",
 		"products": [
 			"Workers"
 		],
