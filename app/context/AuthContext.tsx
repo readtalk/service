@@ -10,11 +10,11 @@ import {
 import { createClient } from "@openauthjs/openauth/client";
 
 // ============================================================
-// CLIENT OPEN AUTH (mengarah ke server yang sama)
+// CLIENT OPEN AUTH
 // ============================================================
 const client = createClient({
   clientID: "react",
-  issuer: window.location.origin, // Server OpenAuth di Worker yang sama
+  issuer: window.location.origin,
 });
 
 // ============================================================
@@ -154,6 +154,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// ============================================================
+// HOOK
+// ============================================================
 export function useAuth() {
   return useContext(AuthContext);
 }
