@@ -1,3 +1,4 @@
+// workers/app.ts
 import { Hono } from "hono";
 import { createRequestHandler } from "react-router";
 import { issuer } from "@openauthjs/openauth";
@@ -12,19 +13,22 @@ const subjects = createSubjects({
 
 const app = new Hono();
 
-// 1. OpenAuth server (handle /auth/*)
-app.route("/auth", issuer({
-  storage: CloudflareStorage({ namespace: env.AUTH_STORAGE }),
-  subjects,
-  providers: { password: PasswordProvider() },
-  success: async (ctx, value) => {
-    if (value.provider === "password") {
-      const userId = await getOrCreateUser(env, value.email);
-      return ctx.subject("user", { id: userId });
+// 1. OpenAuth server (handle /auth/*) — dibuat di dalam fetch handler
+app.route("/auth", async (c) => {
+  const env = c.env as Env;
+  return issuer({
+    storage: CloudflareStorage({ namespace: env.AUTH_STORAGE }),
+    subjects,
+    providers: { password: PasswordProvider() },
+    success: async (ctx, value) => {
+      if (value.provider === "password") {
+        const userId = await getOrCreateUser(env, value.email);
+        return ctx.subject("user", { id: userId });
+      }
+      throw new Error("Invalid provider");
     }
-    throw new Error("Invalid provider");
-  }
-}));
+  }).fetch(c.req.raw, env, c.executionCtx);
+});
 
 // 2. React Router (handle semua request lain)
 app.get("*", (c) => {
@@ -37,7 +41,7 @@ app.get("*", (c) => {
 
 export default app;
 
-// 3. Fungsi getOrCreateUser (tetap sama)
+// 3. Fungsi getOrCreateUser
 async function getOrCreateUser(env: Env, email: string): Promise<string> {
   const result = await env.AUTH_DB.prepare(
     `INSERT INTO user (email) VALUES (?) ON CONFLICT (email) DO UPDATE SET email = email RETURNING id;`
