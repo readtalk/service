@@ -1,9 +1,7 @@
-// workers/app.ts
-import { Hono } from "hono";
-import { createRequestHandler } from "react-router";
 import { issuer } from "@openauthjs/openauth";
 import { CloudflareStorage } from "@openauthjs/openauth/storage/cloudflare";
 import { PasswordProvider } from "@openauthjs/openauth/provider/password";
+import { PasswordUI } from "@openauthjs/openauth/ui/password";
 import { createSubjects } from "@openauthjs/openauth/subject";
 import { object, string } from "valibot";
 
@@ -11,37 +9,55 @@ const subjects = createSubjects({
   user: object({ id: string() }),
 });
 
-const app = new Hono();
+export default {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext) {
+    const url = new URL(request.url);
 
-// 1. OpenAuth server (handle /auth/*) — dibuat di dalam fetch handler
-app.route("/auth", async (c) => {
-  const env = c.env as Env;
-  return issuer({
-    storage: CloudflareStorage({ namespace: env.AUTH_STORAGE }),
-    subjects,
-    providers: { password: PasswordProvider() },
-    success: async (ctx, value) => {
-      if (value.provider === "password") {
+    // Redirect root ke /authorize
+    if (url.pathname === "/") {
+      url.searchParams.set("redirect_uri", url.origin + "/callback");
+      url.searchParams.set("client_id", "your-client-id");
+      url.searchParams.set("response_type", "code");
+      url.pathname = "/authorize";
+      return Response.redirect(url.toString());
+    }
+
+    // Callback
+    if (url.pathname === "/callback") {
+      return Response.json({
+        message: "OAuth flow complete!",
+        params: Object.fromEntries(url.searchParams.entries()),
+      });
+    }
+
+    // OpenAuth issuer
+    return issuer({
+      storage: CloudflareStorage({ namespace: env.AUTH_STORAGE }),
+      subjects,
+      providers: {
+        password: PasswordProvider(
+          PasswordUI({
+            sendCode: async (email, code) => {
+              console.log(`Sending code ${code} to ${email}`);
+            },
+            copy: { input_code: "Code (check Worker logs)" },
+          }),
+        ),
+      },
+      theme: {
+        title: "Authentication",
+        primary: "#FF0000",
+        favicon: "https://service.readtalk.workers.dev/logo.png",
+        logo: { dark: "https://service.readtalk.workers.dev/logo.png", light: "https://service.readtalk.workers.dev/logo.png" },
+      },
+      success: async (ctx, value) => {
         const userId = await getOrCreateUser(env, value.email);
         return ctx.subject("user", { id: userId });
-      }
-      throw new Error("Invalid provider");
-    }
-  }).fetch(c.req.raw, env, c.executionCtx);
-});
+      },
+    }).fetch(request, env, ctx);
+  },
+};
 
-// 2. React Router (handle semua request lain)
-app.get("*", (c) => {
-  const requestHandler = createRequestHandler(
-    () => import("virtual:react-router/server-build"),
-    import.meta.env.MODE,
-  );
-  return requestHandler(c.req.raw, { cloudflare: { env: c.env, ctx: c.executionCtx } });
-});
-
-export default app;
-
-// 3. Fungsi getOrCreateUser
 async function getOrCreateUser(env: Env, email: string): Promise<string> {
   const result = await env.AUTH_DB.prepare(
     `INSERT INTO user (email) VALUES (?) ON CONFLICT (email) DO UPDATE SET email = email RETURNING id;`
@@ -50,9 +66,4 @@ async function getOrCreateUser(env: Env, email: string): Promise<string> {
     .first<{ id: string }>();
   if (!result) throw new Error(`Unable to process user: ${email}`);
   return result.id;
-}
-
-interface Env {
-  AUTH_STORAGE: KVNamespace;
-  AUTH_DB: D1Database;
 }
