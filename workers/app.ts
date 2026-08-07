@@ -8,7 +8,7 @@ const app = new Hono();
 app.get("*", (c) => {
 	const requestHandler = createRequestHandler(
 		() => import("virtual:react-router/server-build"),
-		import.meta.env.MODE,
+		import.meta.env.VALUE_FROM_CLOUDFLARE,
 	);
 
 	return requestHandler(c.req.raw, {
