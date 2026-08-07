@@ -1,7 +1,8 @@
+import { Hono } from "hono";
+import { createRequestHandler } from "react-router";
 import { issuer } from "@openauthjs/openauth";
 import { CloudflareStorage } from "@openauthjs/openauth/storage/cloudflare";
 import { PasswordProvider } from "@openauthjs/openauth/provider/password";
-import { PasswordUI } from "@openauthjs/openauth/ui/password";
 import { createSubjects } from "@openauthjs/openauth/subject";
 import { object, string } from "valibot";
 
@@ -9,55 +10,47 @@ const subjects = createSubjects({
   user: object({ id: string() }),
 });
 
-export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext) {
-    const url = new URL(request.url);
+const app = new Hono();
 
-    // Redirect root ke /authorize
-    if (url.pathname === "/") {
-      url.searchParams.set("redirect_uri", url.origin + "/callback");
-      url.searchParams.set("client_id", "your-client-id");
-      url.searchParams.set("response_type", "code");
-      url.pathname = "/authorize";
-      return Response.redirect(url.toString());
-    }
-
-    // Callback
-    if (url.pathname === "/callback") {
-      return Response.json({
-        message: "OAuth flow complete!",
-        params: Object.fromEntries(url.searchParams.entries()),
-      });
-    }
-
-    // OpenAuth issuer
-    return issuer({
-      storage: CloudflareStorage({ namespace: env.AUTH_STORAGE }),
-      subjects,
-      providers: {
-        password: PasswordProvider(
-          PasswordUI({
-            sendCode: async (email, code) => {
-              console.log(`Sending code ${code} to ${email}`);
-            },
-            copy: { input_code: "Code (check Worker logs)" },
-          }),
-        ),
-      },
-      theme: {
-        title: "Authentication",
-        primary: "#FF0000",
-        favicon: "https://service.readtalk.workers.dev/logo.png",
-        logo: { dark: "https://service.readtalk.workers.dev/logo.png", light: "https://service.readtalk.workers.dev/logo.png" },
-      },
-      success: async (ctx, value) => {
+// ============================================================
+// 1. OPEN AUTH SERVER (handle /auth/*)
+// ============================================================
+app.route("/auth", async (c) => {
+  const env = c.env as Env;
+  return issuer({
+    storage: CloudflareStorage({ namespace: env.AUTH_STORAGE }),
+    subjects,
+    providers: {
+      password: PasswordProvider(), // Tanpa PasswordUI
+    },
+    success: async (ctx, value) => {
+      if (value.provider === "password") {
         const userId = await getOrCreateUser(env, value.email);
         return ctx.subject("user", { id: userId });
-      },
-    }).fetch(request, env, ctx);
-  },
-};
+      }
+      throw new Error("Invalid provider");
+    },
+  }).fetch(c.req.raw, env, c.executionCtx);
+});
 
+// ============================================================
+// 2. REACT ROUTER (handle semua request lain)
+// ============================================================
+app.get("*", (c) => {
+  const requestHandler = createRequestHandler(
+    () => import("virtual:react-router/server-build"),
+    import.meta.env.MODE,
+  );
+  return requestHandler(c.req.raw, {
+    cloudflare: { env: c.env, ctx: c.executionCtx },
+  });
+});
+
+export default app;
+
+// ============================================================
+// 3. FUNGSI UTILITY (getOrCreateUser)
+// ============================================================
 async function getOrCreateUser(env: Env, email: string): Promise<string> {
   const result = await env.AUTH_DB.prepare(
     `INSERT INTO user (email) VALUES (?) ON CONFLICT (email) DO UPDATE SET email = email RETURNING id;`
@@ -66,4 +59,12 @@ async function getOrCreateUser(env: Env, email: string): Promise<string> {
     .first<{ id: string }>();
   if (!result) throw new Error(`Unable to process user: ${email}`);
   return result.id;
+}
+
+// ============================================================
+// 4. TYPE DEFINITIONS
+// ============================================================
+interface Env {
+  AUTH_STORAGE: KVNamespace;
+  AUTH_DB: D1Database;
 }
