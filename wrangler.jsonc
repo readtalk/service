@@ -9,7 +9,7 @@
     "compatibility_flags": ["nodejs_compat"],
 	"main": "./workers/app.ts",
 	"vars": {
-		"VALUE_FROM_CLOUDFLARE": "Hello from Hono/CF"
+		"VALUE_FROM_CLOUDFLARE": "https://social.readtalk.workers.dev"
 	},
 	"observability": {
 		"enabled": true
