@@ -21,7 +21,7 @@ export default {
       url.searchParams.set("redirect_uri", url.origin + "/callback");
       url.searchParams.set("client_id", "your-client-id");
       url.searchParams.set("response_type", "code");
-      url.searchParams.set("state", "/profile");
+      url.searchParams.set("state", "/welcome");
       url.pathname = "/authorize";
       return Response.redirect(url.toString());
     }
