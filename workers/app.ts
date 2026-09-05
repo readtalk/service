@@ -23,7 +23,7 @@ export default {
     }
 
     // Callback
-    if (url.pathname === "/callback") {
+    if (url.pathname === "/") {
       return Response.json({
         message: "OAuth flow complete!",
         params: Object.fromEntries(url.searchParams.entries()),
