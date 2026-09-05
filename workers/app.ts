@@ -10,38 +10,38 @@ import { object, string } from "valibot";
 const app = new Hono();
 const subjects = createSubjects({ user: object({ id: string() }) });
 
-const authHandler = issuer({
-  storage: CloudflareStorage({ namespace: env.AUTH_STORAGE }),
-  subjects,
-  providers: {
-    password: PasswordProvider(
-      PasswordUI({
-        sendCode: async (email, code) => {
-          console.log(`Sending code ${code} to ${email}`);
-        },
-        copy: { input_code: "Code (check Worker logs)" },
-      }),
-    ),
-  },
-  theme: {
-    title: "Authentication",
-    primary: "#FF0000",
-    favicon: "https://service.readtalk.workers.dev/logo.png",
-    logo: { dark: "https://service.readtalk.workers.dev/logo.png", light: "https://service.readtalk.workers.dev/logo.png" },
-  },
-  success: async (ctx, value) => {
-    const userId = await getOrCreateUser(env, value.email);
-    return ctx.subject("user", { id: userId });
-  },
-});
+// ==================== OPENAUTH HANDLER (DI DALAM ROUTE) ====================
+app.get("/auth/*", async (c) => {
+  const authHandler = issuer({
+    storage: CloudflareStorage({ namespace: c.env.AUTH_STORAGE }),
+    subjects,
+    providers: {
+      password: PasswordProvider(
+        PasswordUI({
+          sendCode: async (email, code) => {
+            console.log(`Sending code ${code} to ${email}`);
+          },
+          copy: { input_code: "Code (check Worker logs)" },
+        }),
+      ),
+    },
+    theme: {
+      title: "Authentication",
+      primary: "#FF0000",
+      favicon: "https://service.readtalk.workers.dev/logo.png",
+      logo: { dark: "https://service.readtalk.workers.dev/logo.png", light: "https://service.readtalk.workers.dev/logo.png" },
+    },
+    success: async (ctx, value) => {
+      const userId = await getOrCreateUser(c.env, value.email);
+      return ctx.subject("user", { id: userId });
+    },
+  });
 
-// ==================== OPENAUTH DI ROOT ====================
-app.get("/", async (c) => {
   return authHandler.fetch(c.req.raw, c.env, c.executionCtx);
 });
 
-// ==================== REACT ROUTER DI /HOME ====================
-app.get("/home", async (c) => {
+// ==================== REACT ROUTER ====================
+app.get("*", async (c) => {
   const requestHandler = createRequestHandler(
     () => import("virtual:react-router/server-build"),
     import.meta.env.MODE,
@@ -49,12 +49,6 @@ app.get("/home", async (c) => {
   return requestHandler(c.req.raw, {
     cloudflare: { env: c.env, ctx: c.executionCtx },
   });
-});
-
-// ==================== FALLBACK (TANGGAP SEMUA YANG GAK DIHANDLE) ====================
-app.get("*", async (c) => {
-  // Redirect ke root (OpenAuth) kalo gak ada path yang match
-  return c.redirect("/");
 });
 
 async function getOrCreateUser(env: Env, email: string): Promise<string> {
