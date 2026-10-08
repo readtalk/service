@@ -13,7 +13,6 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
     const url = new URL(request.url);
 
-    // Redirect root ke /authorize
     if (url.pathname === "/") {
       url.searchParams.set("redirect_uri", url.origin + "/callback");
       url.searchParams.set("client_id", "your-client-id");
@@ -22,7 +21,6 @@ export default {
       return Response.redirect(url.toString());
     }
 
-    // Callback
     if (url.pathname === "/callback") {
       return Response.json({
         message: "OAuth flow complete!",
@@ -30,7 +28,6 @@ export default {
       });
     }
 
-    // OpenAuth issuer
     return issuer({
       storage: CloudflareStorage({ namespace: env.AUTH_STORAGE }),
       subjects,
