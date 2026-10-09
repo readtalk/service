@@ -7,7 +7,7 @@
 	"name": "service",
 	"compatibility_date": "2025-10-08",
     "compatibility_flags": ["nodejs_compat"],
-	"main": "./workers/client/app.ts",
+	"main": "./workers/server/app.ts",
 	"vars": {
 		"VALUE_FROM_CLOUDFLARE": "Welcome to READTalk"
 	},
