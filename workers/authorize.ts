@@ -14,7 +14,7 @@ export default {
     const url = new URL(request.url);
 
     // Redirect root ke /authorize
-    if (url.pathname === "/auth") {
+    if (url.pathname === "/") {
       url.searchParams.set("redirect_uri", url.origin + "/callback");
       url.searchParams.set("client_id", "your-client-id");
       url.searchParams.set("response_type", "code");
