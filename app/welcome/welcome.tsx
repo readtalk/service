@@ -28,7 +28,7 @@ export function Welcome({ message }: { message: string }) {
 							<li>
 								<button
 									onClick={() => {
-										window.location.href = "https://service.readtalk.workers.dev/authorize?client_id=app-readtalk&redirect_uri=" + window.location.origin + "/callback&response_type=code";
+										window.location.href = "https://service.readtalk.workers.dev/authorize";
 									}}
 									className="w-full rounded-md bg-red-500 px-4 py-2 text-white font-medium hover:bg-red-600 transition-colors"
 								>
