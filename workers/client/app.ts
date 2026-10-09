@@ -4,7 +4,7 @@ import authApp from "./server/app";
 
 const app = new Hono();
 
-app.route("/", authApp);
+app.route("/authorize", authApp);
 
 app.get("*", (c) => {
   const requestHandler = createRequestHandler(
